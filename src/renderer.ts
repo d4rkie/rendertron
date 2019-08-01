@@ -73,6 +73,7 @@ export class Renderer {
       page.setUserAgent(MOBILE_USERAGENT);
     }
 
+    page.evaluateOnNewDocument('isPuppeteer = true');
     page.evaluateOnNewDocument('customElements.forcePolyfill = true');
     page.evaluateOnNewDocument('ShadyDOM = {force: true}');
     page.evaluateOnNewDocument('ShadyCSS = {shimcssproperties: true}');
@@ -89,9 +90,9 @@ export class Renderer {
     });
 
     try {
-      // Navigate to page. Wait until there are no oustanding network requests.
+      // Navigate to page. Wait for page to load.
       response = await page.goto(
-          requestUrl, {timeout: this.config.timeout, waitUntil: 'networkidle0'});
+          requestUrl, {timeout: 3*1000, waitUntil: 'load'});
     } catch (e) {
       console.error(e);
     }
@@ -165,9 +166,9 @@ export class Renderer {
     let response: puppeteer.Response|null = null;
 
     try {
-      // Navigate to page. Wait until there are no oustanding network requests.
+      // Navigate to page. Wait for page to load.
       response =
-          await page.goto(url, {timeout: 10000, waitUntil: 'networkidle0'});
+          await page.goto(url, {timeout: 3*1000, waitUntil: 'load'});
     } catch (e) {
       console.error(e);
     }
