@@ -73,6 +73,8 @@ export class Renderer {
       page.setUserAgent(MOBILE_USERAGENT);
     }
 
+    page.on('console', msg => console.log('Page console.log:', msg.text()));
+
     page.evaluateOnNewDocument('isPuppeteer = true');
     page.evaluateOnNewDocument('customElements.forcePolyfill = true');
     page.evaluateOnNewDocument('ShadyDOM = {force: true}');
@@ -91,8 +93,9 @@ export class Renderer {
 
     try {
       // Navigate to page. Wait for page to load.
+      const waitUntil = isMobile ? 'load' : 'networkidle0';
       response = await page.goto(
-          requestUrl, {timeout: 3*1000, waitUntil: 'load'});
+          requestUrl, {timeout: 3 * 1000, waitUntil: waitUntil});
     } catch (e) {
       console.error(e);
     }
@@ -140,6 +143,17 @@ export class Renderer {
     await page.evaluate(
         injectBaseHref, `${parsedUrl.protocol}//${parsedUrl.host}`);
 
+    if (!isMobile) {
+      await page.evaluate(function () {
+        Array.from(document.querySelectorAll('style[data-styled]')).forEach(
+          style => {
+            // @ts-ignore
+            style.textContent = Array.from(style.sheet.cssRules, rule => rule.cssText).join('\n')
+          }
+        )
+      });
+    }
+
     // Serialize page.
     const result = await page.evaluate('document.firstElementChild.outerHTML');
 
@@ -167,8 +181,9 @@ export class Renderer {
 
     try {
       // Navigate to page. Wait for page to load.
+      const waitUntil = isMobile ? 'load' : 'networkidle0';
       response =
-          await page.goto(url, {timeout: 3*1000, waitUntil: 'load'});
+          await page.goto(url, {timeout: 3 * 1000, waitUntil: waitUntil});
     } catch (e) {
       console.error(e);
     }
