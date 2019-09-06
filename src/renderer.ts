@@ -20,6 +20,7 @@ const MOBILE_USERAGENT =
  */
 export class Renderer {
   private browser: puppeteer.Browser;
+  // @ts-ignore
   private config: Config;
 
   constructor(browser: puppeteer.Browser, config: Config) {
@@ -67,7 +68,10 @@ export class Renderer {
 
     // Page may reload when setting isMobile
     // https://github.com/GoogleChrome/puppeteer/blob/v1.10.0/docs/api.md#pagesetviewportviewport
-    await page.setViewport({width: this.config.width, height: this.config.height, isMobile});
+    const width = isMobile ? 750 : 1200;
+    const height = 12000;
+
+    await page.setViewport({width, height, isMobile});
 
     if (isMobile) {
       page.setUserAgent(MOBILE_USERAGENT);
