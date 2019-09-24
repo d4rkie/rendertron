@@ -77,6 +77,12 @@ export class Renderer {
       page.setUserAgent(MOBILE_USERAGENT);
     }
 
+    if (requestUrl.indexOf('/en/') !== -1) {
+      await page.setExtraHTTPHeaders({
+        'Accept-Language': 'en'
+      });
+    }
+
     page.on('console', msg => console.log('Page console.log:', msg.text()));
 
     page.evaluateOnNewDocument('isPuppeteer = true');
