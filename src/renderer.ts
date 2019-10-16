@@ -79,9 +79,9 @@ export class Renderer {
       page.setUserAgent(MOBILE_USERAGENT);
     }
 
-    await page.setExtraHTTPHeaders({
-      'x-renderer': 'rendertron'
-    });
+    // await page.setExtraHTTPHeaders({
+    //   'x-renderer': 'rendertron'
+    // });
 
     if (requestUrl.indexOf('/en/') !== -1) {
       await page.setExtraHTTPHeaders({
