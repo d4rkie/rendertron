@@ -19,14 +19,15 @@ export class Rendertron {
   app: Koa = new Koa();
   private config: Config = ConfigManager.config;
   private renderer: Renderer | undefined;
-  private port = process.env.PORT;
+  private port = process.env.PORT || this.config.port;
+  private host = process.env.HOST || this.config.host;
 
   async initialize() {
     // Load config
     this.config = await ConfigManager.getConfiguration();
 
     this.port = this.port || this.config.port;
-
+    this.host = this.host || this.config.host;
 
     const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
     this.renderer = new Renderer(browser, this.config);
@@ -45,9 +46,12 @@ export class Rendertron {
       route.get('/_ah/health', (ctx: Koa.Context) => ctx.body = 'OK'));
 
     // Optionally enable cache for rendering requests.
-    if (this.config.datastoreCache) {
+    if (this.config.cache === 'datastore') {
       const { DatastoreCache } = await import('./datastore-cache');
       this.app.use(new DatastoreCache().middleware());
+    } else if (this.config.cache === 'memory') {
+      const { MemoryCache } = await import('./memory-cache');
+      this.app.use(new MemoryCache().middleware());
     }
 
     this.app.use(
@@ -57,7 +61,7 @@ export class Rendertron {
     this.app.use(route.post(
       '/screenshot/:url(.*)', this.handleScreenshotRequest.bind(this)));
 
-    return this.app.listen(this.port, () => {
+    return this.app.listen(+this.port, this.host, () => {
       console.log(`Listening on port ${this.port}`);
     });
   }
@@ -90,8 +94,15 @@ export class Rendertron {
     const mobileVersion = 'mobile' in ctx.query ? true : false;
 
     const serialized = await this.renderer.serialize(url, mobileVersion);
+
+    for (const key in this.config.headers) {
+      ctx.set(key, this.config.headers[key]);
+    }
+
     // Mark the response as coming from Rendertron.
     ctx.set('x-renderer', 'rendertron');
+    // Add custom headers to the response like 'Location'
+    serialized.customHeaders.forEach((value: string, key: string) => ctx.set(key, value));
     ctx.status = serialized.status;
     ctx.body = serialized.content;
   }
@@ -121,6 +132,11 @@ export class Rendertron {
     try {
       const img = await this.renderer.screenshot(
         url, mobileVersion, dimensions, options);
+
+      for (const key in this.config.headers) {
+        ctx.set(key, this.config.headers[key]);
+      }
+
       ctx.set('Content-Type', 'image/jpeg');
       ctx.set('Content-Length', img.length.toString());
       ctx.body = img;
@@ -137,10 +153,20 @@ async function logUncaughtError(error: Error) {
   process.exit(1);
 }
 
+// The type for the unhandleRejection handler is set to contain Promise<any>,
+// so we disable that linter rule for the next line
+// tslint:disable-next-line: no-any
+async function logUnhandledRejection(reason: unknown, _: Promise<any>) {
+  console.error('Unhandled rejection');
+  console.error(reason);
+  process.exit(1);
+}
+
 // Start rendertron if not running inside tests.
 if (!module.parent) {
   const rendertron = new Rendertron();
   rendertron.initialize();
 
   process.on('uncaughtException', logUncaughtError);
+  process.on('unhandledRejection', logUnhandledRejection);
 }
