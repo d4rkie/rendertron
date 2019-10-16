@@ -109,9 +109,8 @@ export class Renderer {
 
     try {
       // Navigate to page. Wait for page to load.
-      const waitUntil = isMobile ? 'load' : 'networkidle0';
       response = await page.goto(
-          requestUrl, {timeout: 3 * 1000, waitUntil: waitUntil});
+          requestUrl, {timeout: 3 * 1000, waitUntil: 'networkidle0'});
     } catch (e) {
       console.error(e);
     }
@@ -217,9 +216,8 @@ export class Renderer {
 
     try {
       // Navigate to page. Wait for page to load.
-      const waitUntil = isMobile ? 'load' : 'networkidle0';
       response =
-          await page.goto(url, {timeout: 3 * 1000, waitUntil: waitUntil});
+          await page.goto(url, {timeout: 3 * 1000, waitUntil: 'networkidle0'});
     } catch (e) {
       console.error(e);
     }
